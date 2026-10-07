@@ -306,7 +306,7 @@ function inviteData() {
     date: r.date,
     row,
     seat: num,
-    venue: 'Movistar Arena · DaviArena, Bogotá',
+    venue: 'DaviArena, Bogotá',
   };
 }
 

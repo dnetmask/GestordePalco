@@ -1,7 +1,7 @@
 // Configuración del palco. Los códigos de acceso pueden (y deben) sobreescribirse
 // con variables de entorno en producción.
 const config = {
-  palcoName: process.env.PALCO_NAME || 'Box 7 · Movistar DaviArena',
+  palcoName: process.env.PALCO_NAME || 'Box 7 · DaviArena',
 
   // Distribución del Box 7 según el mapa 3D del DaviArena. La Fila A es la de adelante (junto a la
   // baranda) y está corrida a la derecha; las sillas se numeran de izquierda a derecha.

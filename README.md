@@ -1,6 +1,6 @@
 # Gestor de Palco · DaviArena
 
-Web para administrar el palco que comparten **Netmask**, **TD SYNNEX** y **Technology Partners** en el Movistar DaviArena (programación *La Primavera* 2026).
+Web para administrar el palco que comparten **Netmask**, **TD SYNNEX** y **Technology Partners** en el DaviArena.
 
 ## Funcionalidades
 
@@ -29,7 +29,7 @@ Por variables de entorno (ver `config.js`):
 
 | Variable | Por defecto | Descripción |
 |---|---|---|
-| `PALCO_NAME` | `Box 7 · Movistar DaviArena` | Nombre que se muestra |
+| `PALCO_NAME` | `Box 7 · DaviArena` | Nombre que se muestra |
 | `CODE_NETMASK` | `NETMASK-2026` | Código de acceso de Netmask |
 | `CODE_TDSYNNEX` | `TDSYNNEX-2026` | Código de acceso de TD SYNNEX |
 | `CODE_TECHPARTNERS` | `TECHPARTNERS-2026` | Código de acceso de Technology Partners |
