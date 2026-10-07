@@ -31,12 +31,13 @@ module.exports = {
   // Código de administración: puede liberar cualquier reserva y gestionar conciertos.
   adminCode: process.env.CODE_ADMIN || 'ADMIN-PALCO-2026',
 
-  // Programación "La Primavera" (temporada 2026). Se cargan solo si la base está vacía.
+  // Programación. Cada concierto se carga una vez por base de datos (los nuevos se agregan al desplegar).
   concerts: [
     { artist: 'Juanes', date: '2026-11-14' },
     { artist: 'Chayanne', date: '2026-11-19' },
     { artist: 'Kris R', date: '2026-11-20' },
     { artist: 'Rubén Blades', date: '2026-11-21' },
+    { artist: 'Anuel AA', date: '2026-11-22' },
     { artist: 'Marco Antonio Solís', date: '2026-11-26' },
     { artist: 'Beéle', date: '2026-11-29' },
     { artist: 'Ozuna', date: '2026-12-03' },
@@ -47,5 +48,7 @@ module.exports = {
     { artist: 'Rawayana', date: '2026-12-12' },
     { artist: 'Juan Luis Guerra', date: '2026-12-13' },
     { artist: 'La Verbena', date: '2026-12-19' },
+    { artist: 'Laura Pausini', date: '2027-03-07' },
+    { artist: 'Carlos Vives', date: '2027-04-17' },
   ],
 };

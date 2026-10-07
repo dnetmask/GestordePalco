@@ -99,3 +99,26 @@ test('solo admin gestiona conciertos', async () => {
   assert.equal((await call('/api/concerts', { code: NM, method: 'POST', body })).status, 403);
   assert.equal((await call('/api/concerts', { code: config.adminCode, method: 'POST', body })).status, 201);
 });
+
+test('la carga de conciertos es idempotente y respeta los eliminados', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'palco-'));
+  const url = 'file:' + path.join(dir, 'p.db');
+  const start = async () => {
+    const s = createApp({ url }).listen(0);
+    await new Promise((r) => s.once('listening', r));
+    const res = await fetch(`http://127.0.0.1:${s.address().port}/api/concerts`, { headers: { 'X-Access-Code': config.adminCode } });
+    return { s, list: await res.json(), port: s.address().port };
+  };
+  const a = await start();
+  assert.equal(a.list.length, config.concerts.length);
+  const victim = a.list.find((c) => c.artist === 'Carlos Vives');
+  await fetch(`http://127.0.0.1:${a.port}/api/concerts/${victim.id}`, { method: 'DELETE', headers: { 'X-Access-Code': config.adminCode } });
+  a.s.close();
+  const b = await start();
+  assert.equal(b.list.length, config.concerts.length - 1);
+  assert.ok(!b.list.some((c) => c.artist === 'Carlos Vives'));
+  b.s.close();
+});

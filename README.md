@@ -40,7 +40,7 @@ Por variables de entorno (ver `config.js`):
 
 **Cambia los códigos por defecto antes de publicarla.**
 
-Los conciertos de `config.js` se cargan solo la primera vez (base vacía); después se gestionan desde la pestaña *Conciertos* del administrador.
+Cada concierto de `config.js` se carga una sola vez en la base: si agregas uno nuevo ahí, aparece al desplegar; si el administrador lo elimina, no vuelve. También se pueden agregar o editar desde la pestaña *Conciertos* del administrador.
 Nota: el afiche indica KI/KI el 04.11, pero por el orden de la programación se cargó como 04.12; se puede corregir desde la vista de administrador.
 
 ## Despliegue en Vercel
