@@ -83,7 +83,7 @@ test('reserva parcial en conflicto no guarda ninguna silla', async () => {
   await call(`/api/concerts/${id}/reservations`, { code: NM, method: 'POST', body: { seats: [6], reservedBy: 'A' } });
   const r = await call(`/api/concerts/${id}/reservations`, { code: TD, method: 'POST', body: { seats: [5, 6, 7], reservedBy: 'B' } });
   assert.equal(r.status, 409);
-  assert.match(r.data.error, /6/);
+  assert.match(r.data.error, /B1/);
   const { data } = await call(`/api/concerts/${id}`, { code: NM });
   assert.deepEqual(data.reservations.map((x) => x.seat), [6]);
 });

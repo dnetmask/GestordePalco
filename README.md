@@ -6,7 +6,7 @@ Web para administrar el palco que comparten **Netmask**, **TD SYNNEX** y **Techn
 
 - **Acceso por código de socio**: cada empresa entra con su código. Así toda reserva queda asociada al socio que la hizo.
 - **Reservas por silla**: eliges el concierto, marcas las sillas libres y reservas indicando quién reserva y, si quieres, a nombre de quién (invitado/cliente).
-- **Mapa del palco**: cada silla muestra con el color del socio quién la tiene. Un socio solo puede liberar sus propias sillas.
+- **Mapa del Box 7**: las 11 sillas como en el mapa del DaviArena — Fila A (5 sillas, adelante junto a la baranda) y Fila B (6 sillas, atrás); la distribución está en `rows` de `config.js`. Cada silla muestra con el color del socio quién la tiene. Un socio solo puede liberar sus propias sillas.
 - **Estadísticas**: quién reserva más (sillas y conciertos por socio), personas que más reservan, ocupación por concierto y de toda la temporada.
 - **Historial**: registro de cada reserva y liberación (quién, cuándo y qué).
 - **Administrador**: con el código de admin se pueden agregar, editar o eliminar conciertos y liberar cualquier silla.
@@ -27,8 +27,7 @@ Por variables de entorno (ver `config.js`):
 
 | Variable | Por defecto | Descripción |
 |---|---|---|
-| `PALCO_SEATS` | `11` | Número de sillas del palco |
-| `PALCO_NAME` | `Palco Movistar DaviArena` | Nombre que se muestra |
+| `PALCO_NAME` | `Box 7 · Movistar DaviArena` | Nombre que se muestra |
 | `CODE_NETMASK` | `NETMASK-2026` | Código de acceso de Netmask |
 | `CODE_TDSYNNEX` | `TDSYNNEX-2026` | Código de acceso de TD SYNNEX |
 | `CODE_TECHPARTNERS` | `TECHPARTNERS-2026` | Código de acceso de Technology Partners |

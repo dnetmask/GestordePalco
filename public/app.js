@@ -19,6 +19,10 @@ const partner = (id) => state.info.partners.find((p) => p.id === id) || { short:
 const fmtDate = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' });
 const fmtTs = (ts) => new Date(ts.replace(' ', 'T') + 'Z').toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
 const isPast = (c) => c.date < state.info.today;
+const seatLabel = (n) => {
+  const r = state.info.layout.find((x) => n >= x.start && n < x.start + x.seats);
+  return r ? `${r.row}${n - r.start + 1}` : String(n);
+};
 
 async function api(path, opts = {}) {
   const res = await fetch(path, {
@@ -137,21 +141,33 @@ function renderPalco() {
   const bySeat = Object.fromEntries(c.reservations.map((r) => [r.seat, r]));
   const isAdmin = state.who.role === 'admin';
 
-  const seats = [];
-  for (let n = 1; n <= state.info.seats; n++) {
+  const seatButton = (n) => {
+    const label = seatLabel(n);
     const r = bySeat[n];
     if (r) {
       const p = partner(r.partner_id);
       const mine = isAdmin || r.partner_id === state.who.partnerId;
-      seats.push(`<button class="seat taken ${mine && !past ? 'mine' : ''}" data-res="${r.id}" style="background:${p.color};border-color:${p.color}"
-        title="${esc(`${p.short} · reservó ${r.reserved_by}${r.guest_name ? ' · asiste ' + r.guest_name : ''}`)}${mine && !past ? ' — clic para liberar' : ''}">
-        <span class="num">${n}</span><span class="tag">${esc(p.short)}</span><span class="guest">${esc(r.guest_name || r.reserved_by)}</span></button>`);
-    } else {
-      const sel = state.selectedSeats.has(n);
-      seats.push(`<button class="seat free ${sel ? 'selected' : ''}" data-seat="${n}" ${past ? 'disabled' : ''}>
-        <span class="num">${n}</span><span>${sel ? 'Seleccionada' : 'Libre'}</span></button>`);
+      return `<button class="seat taken ${mine && !past ? 'mine' : ''}" data-res="${r.id}" style="background:${p.color};border-color:${p.color}"
+        title="${esc(`Silla ${label} · ${p.short} · reservó ${r.reserved_by}${r.guest_name ? ' · asiste ' + r.guest_name : ''}`)}${mine && !past ? ' — clic para liberar' : ''}">
+        <span class="num">${label}</span><span class="tag">${esc(p.short)}</span><span class="guest">${esc(r.guest_name || r.reserved_by)}</span></button>`;
     }
-  }
+    const sel = state.selectedSeats.has(n);
+    return `<button class="seat free ${sel ? 'selected' : ''}" data-seat="${n}" ${past ? 'disabled' : ''} title="Silla ${label}">
+      <span class="num">${label}</span><span class="state">${sel ? 'Elegida' : 'Libre'}</span></button>`;
+  };
+
+  // Vista como en el mapa 3D: la fila de atrás arriba y la Fila A abajo, junto a la baranda,
+  // alineada a la derecha.
+  const cols = Math.max(...state.info.layout.map((r) => r.seats));
+  const rowsHtml = [...state.info.layout].reverse().map((r) => {
+    const cells = [];
+    for (let i = 0; i < r.seats; i++) {
+      const col = cols - r.seats + 2 + i;
+      cells.push(`<div style="grid-column:${col}">${seatButton(r.start + i)}</div>`);
+    }
+    return `<div class="row-label" style="grid-column:1">Fila ${esc(r.row)}</div>${cells.join('')}`;
+  }).join('');
+  const seatsHtml = `<div class="box" style="--cols:${cols}">${rowsHtml}</div>`;
 
   const savedName = store.get('palco.reservedBy') || '';
   const partnerSelect = isAdmin
@@ -164,8 +180,9 @@ function renderPalco() {
       <span class="date">${new Date(c.date + 'T12:00:00').toLocaleDateString('es-CO', { dateStyle: 'full' })}</span>
     </div>
     ${c.notes ? `<p>${esc(c.notes)}</p>` : ''}
-    <div class="stage">ESCENARIO</div>
-    <div class="seats">${seats.join('')}</div>
+    ${seatsHtml}
+    <div class="railing"></div>
+    <div class="stage">↓ ESCENARIO ↓</div>
     <div class="legend">
       ${state.info.partners.map((p) => `<span><i style="background:${p.color}"></i>${esc(p.name)}</span>`).join('')}
       <span><i style="border:2px dashed var(--muted)"></i>Libre</span>
@@ -201,7 +218,7 @@ function renderPalco() {
 function updateSummary() {
   const n = state.selectedSeats.size;
   $('#rf-summary').textContent = n
-    ? `Sillas seleccionadas: ${[...state.selectedSeats].sort((a, b) => a - b).join(', ')}`
+    ? `Sillas seleccionadas: ${[...state.selectedSeats].sort((a, b) => a - b).map(seatLabel).join(', ')}`
     : 'Haz clic en las sillas libres que necesitas.';
   $('#rf-submit').disabled = n === 0;
   $('#rf-submit').textContent = n ? `Reservar ${n} silla${n > 1 ? 's' : ''}` : 'Reservar';
@@ -230,7 +247,7 @@ async function reserve(e) {
 
 async function release(resId) {
   const r = state.detail.reservations.find((x) => x.id === resId);
-  if (!confirm(`¿Liberar la silla ${r.seat} reservada por ${r.reserved_by}?`)) return;
+  if (!confirm(`¿Liberar la silla ${seatLabel(r.seat)} reservada por ${r.reserved_by}?`)) return;
   try {
     await api('/api/reservations/' + resId, { method: 'DELETE' });
     toast('Silla liberada');

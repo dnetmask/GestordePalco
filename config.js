@@ -1,8 +1,15 @@
 // Configuración del palco. Los códigos de acceso pueden (y deben) sobreescribirse
 // con variables de entorno en producción.
-module.exports = {
-  palcoName: process.env.PALCO_NAME || 'Palco Movistar DaviArena',
-  seats: Number(process.env.PALCO_SEATS || 11),
+const config = {
+  palcoName: process.env.PALCO_NAME || 'Box 7 · Movistar DaviArena',
+
+  // Distribución del Box 7 según el mapa 3D del DaviArena. La Fila A es la de adelante (junto a la
+  // baranda) y está corrida a la derecha; las sillas se numeran de izquierda a derecha.
+  // Internamente cada silla tiene un número 1..11: A1-A5 = 1-5, B1-B6 = 6-11.
+  rows: [
+    { row: 'A', seats: 5 },
+    { row: 'B', seats: 6 },
+  ],
 
   partners: [
     {
@@ -52,3 +59,18 @@ module.exports = {
     { artist: 'Carlos Vives', date: '2027-04-17' },
   ],
 };
+
+config.seats = config.rows.reduce((n, r) => n + r.seats, 0);
+
+// Rangos de cada fila: { row, seats, start } donde start es el número interno de su primera silla.
+config.layout = config.rows.reduce((acc, r) => {
+  const start = acc.length ? acc[acc.length - 1].start + acc[acc.length - 1].seats : 1;
+  return [...acc, { ...r, start }];
+}, []);
+
+config.seatLabel = (n) => {
+  const r = config.layout.find((x) => n >= x.start && n < x.start + x.seats);
+  return r ? `${r.row}${n - r.start + 1}` : String(n);
+};
+
+module.exports = config;

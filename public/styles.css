@@ -123,22 +123,33 @@ main { padding: 1.5rem 16px; max-width: 1200px; margin: 0 auto; }
 .palco-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: baseline; }
 .palco-head h2 { font-size: 2.2rem; font-weight: 900; margin: 0; }
 .palco-head .date { color: var(--pink); font-weight: 600; }
+.box {
+  margin-top: 1.4rem;
+  display: grid;
+  grid-template-columns: auto repeat(var(--cols), minmax(0, 1fr));
+  gap: .6rem;
+  align-items: center;
+  max-width: 760px;
+}
+.row-label { font-size: .75rem; font-weight: 800; color: var(--pink); letter-spacing: .05em; white-space: nowrap; }
+.railing {
+  max-width: 760px;
+  margin-top: .7rem;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #c9ccd6, #f4f5f8, #c9ccd6);
+}
 .stage {
-  margin: 1.2rem 0 .8rem;
+  max-width: 760px;
+  margin: .5rem 0 .2rem;
   text-align: center;
   font-size: .75rem;
   letter-spacing: .3em;
   color: var(--muted);
-  border-top: 3px solid var(--pink);
-  padding-top: .4rem;
-}
-.seats {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-  gap: .6rem;
 }
 .seat {
   position: relative;
+  width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 12px 12px 6px 6px;
   border: 2px dashed var(--muted);
@@ -214,6 +225,10 @@ main { padding: 1.5rem 16px; max-width: 1200px; margin: 0 auto; }
   #concert-list { grid-auto-flow: column; grid-auto-columns: 75%; overflow-x: auto; padding-bottom: .4rem; scroll-snap-type: x mandatory; }
   #concert-list li { scroll-snap-align: start; }
   .concerts h2 { font-size: 1.6rem; }
-  .seats { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .box { gap: .3rem; }
+  .row-label { writing-mode: vertical-rl; transform: rotate(180deg); }
+  .seat { font-size: .6rem; padding: .15rem; border-radius: 8px 8px 4px 4px; }
+  .seat .num { font-size: 1rem; }
+  .seat .guest, .seat .state { display: none; }
   .table { font-size: .8rem; }
 }
