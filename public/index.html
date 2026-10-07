@@ -27,9 +27,10 @@
       <span class="logo">PALCO.</span>
       <nav>
         <button class="tab active" data-view="reservas">Reservas</button>
+        <button class="tab" data-view="invitaciones">Invitaciones</button>
         <button class="tab" data-view="stats">Estadísticas</button>
         <button class="tab" data-view="historial">Historial</button>
-        <button class="tab admin-only" data-view="admin" hidden>Conciertos</button>
+        <button class="tab admin-only" data-view="admin" hidden>Admin</button>
       </nav>
       <span id="whoami" class="who"></span>
       <button id="logout" class="link">Salir</button>
@@ -46,6 +47,15 @@
         <article class="palco" id="palco">
           <p class="empty">Selecciona un concierto.</p>
         </article>
+      </section>
+
+      <!-- Invitaciones -->
+      <section id="view-invitaciones" class="view" hidden>
+        <div class="card wide">
+          <h2>Invitaciones</h2>
+          <p class="hint">Genera una invitación por silla con el logo de la empresa que invita. Se descarga como imagen para enviarla por WhatsApp o correo.</p>
+          <div id="invite-list"></div>
+        </div>
       </section>
 
       <!-- Estadísticas -->
@@ -75,11 +85,34 @@
           <table class="table"><thead><tr><th>Fecha</th><th>Artista</th><th>Notas</th><th>Ocupación</th><th></th></tr></thead>
           <tbody id="admin-concerts"></tbody></table>
         </div>
+        <div class="card wide">
+          <h2>Logos de los socios</h2>
+          <p class="hint">Se usan en las invitaciones. PNG, JPG, WEBP o SVG de hasta 500 KB. Elige fondo oscuro si el logo es blanco o claro.</p>
+          <div id="admin-logos" class="logo-grid"></div>
+        </div>
       </section>
     </main>
   </div>
 
+  <!-- Editor de invitación -->
+  <div id="invite-modal" class="modal" hidden>
+    <div class="modal-card">
+      <button class="link modal-close" id="inv-close" aria-label="Cerrar">✕</button>
+      <div class="invite-editor">
+        <canvas id="inv-canvas" class="inv-preview"></canvas>
+        <form id="inv-form" class="inv-fields">
+          <h2 id="inv-title">Invitación</h2>
+          <label>Nombre del invitado<input id="inv-guest" maxlength="60" placeholder="Ej. Juliana Pérez"></label>
+          <label>Mensaje (opcional)<textarea id="inv-message" maxlength="160" rows="3"></textarea></label>
+          <button class="btn" type="button" id="inv-download">Descargar imagen</button>
+          <button class="btn ghost" type="button" id="inv-share" hidden>Compartir</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" hidden></div>
+  <script src="invite.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

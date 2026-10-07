@@ -122,3 +122,26 @@ test('la carga de conciertos es idempotente y respeta los eliminados', async () 
   assert.ok(!b.list.some((c) => c.artist === 'Carlos Vives'));
   b.s.close();
 });
+
+test('invitaciones y logos', async () => {
+  const { data: concerts } = await call('/api/concerts', { code: TD });
+  const id = concerts.find((c) => c.artist === 'Ozuna').id;
+  await call(`/api/concerts/${id}/reservations`, { code: TD, method: 'POST', body: { seats: [7], reservedBy: 'Ana', guestName: 'Cliente Y' } });
+  const { data: mine } = await call('/api/invitations', { code: TD });
+  const inv = mine.find((r) => r.artist === 'Ozuna');
+  assert.equal(inv.seatLabel, 'B2');
+  assert.equal(inv.guest_name, 'Cliente Y');
+  assert.ok(mine.every((r) => r.partner_id === 'tdsynnex'));
+
+  const { data: logos } = await call('/api/logos', { code: TD });
+  assert.deepEqual(logos.netmask, { url: '/logos/netmask.svg', bg: 'light' });
+  assert.equal(logos.tdsynnex, null);
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  assert.equal((await call('/api/logos/tdsynnex', { code: TD, method: 'PUT', body: { dataUrl: png } })).status, 403);
+  assert.equal((await call('/api/logos/tdsynnex', { code: config.adminCode, method: 'PUT', body: { dataUrl: png, bg: 'dark' } })).status, 200);
+  const { data: after } = await call('/api/logos', { code: TD });
+  assert.match(after.tdsynnex.url, /^\/api\/logos\/tdsynnex\?v=/);
+  assert.equal(after.tdsynnex.bg, 'dark');
+  const img = await fetch(base + '/api/logos/tdsynnex');
+  assert.equal(img.headers.get('content-type'), 'image/png');
+});

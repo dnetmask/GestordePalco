@@ -7,6 +7,7 @@ const state = {
   selectedConcertId: null,
   detail: null,
   selectedSeats: new Set(),
+  logos: {},         // { partnerId: { url, bg } | null }
 };
 
 const store = {
@@ -58,7 +59,7 @@ async function login(code) {
   $('#whoami').innerHTML = who.role === 'admin'
     ? 'Administrador'
     : `<span class="dot" style="background:${who.partner.color}"></span>${esc(who.partner.name)}`;
-  await loadConcerts();
+  await Promise.all([loadConcerts(), loadLogos()]);
   const first = state.concerts.find((c) => !isPast(c)) || state.concerts[0];
   if (first) selectConcert(first.id);
 }
@@ -94,6 +95,7 @@ function showView(view) {
   if (view === 'stats') loadStats();
   if (view === 'historial') loadActivity();
   if (view === 'admin') renderAdmin();
+  if (view === 'invitaciones') loadInvitations();
 }
 
 // ---------- Conciertos y palco ----------
@@ -187,6 +189,8 @@ function renderPalco() {
       ${state.info.partners.map((p) => `<span><i style="background:${p.color}"></i>${esc(p.name)}</span>`).join('')}
       <span><i style="border:2px dashed var(--muted)"></i>Libre</span>
     </div>
+    ${!past && c.reservations.some((r) => isAdmin || r.partner_id === state.who.partnerId)
+      ? '<p><button class="link" id="go-invites" type="button">Generar invitaciones para mis sillas de este concierto →</button></p>' : ''}
     ${past ? '<p class="empty">Este concierto ya pasó; las reservas quedan como registro.</p>' : `
     <form class="reserve-form" id="reserve-form">
       <p class="reserve-summary" id="rf-summary"></p>
@@ -207,6 +211,8 @@ function renderPalco() {
     if (keep.partner && $('#rf-partner')) $('#rf-partner').value = keep.partner;
   }));
   document.querySelectorAll('.seat.taken.mine').forEach((b) => b.addEventListener('click', () => release(Number(b.dataset.res))));
+
+  $('#go-invites')?.addEventListener('click', () => showView('invitaciones'));
 
   const form = $('#reserve-form');
   if (form) {
@@ -260,6 +266,98 @@ async function release(resId) {
 async function refresh() {
   await loadConcerts();
   if (state.selectedConcertId) await selectConcert(state.selectedConcertId);
+}
+
+// ---------- Invitaciones ----------
+
+async function loadLogos() {
+  try { state.logos = await api('/api/logos'); } catch { state.logos = {}; }
+}
+
+async function loadInvitations() {
+  const rows = await api('/api/invitations');
+  state.invitations = rows;
+  const byConcert = {};
+  for (const r of rows) (byConcert[r.concert_id] ??= { artist: r.artist, date: r.date, seats: [] }).seats.push(r);
+  $('#invite-list').innerHTML = Object.values(byConcert).map((c) => `
+    <div class="inv-concert">
+      <h3>${esc(c.artist)} <small>${fmtDate(c.date)}</small></h3>
+      ${c.seats.map((r) => `
+        <div class="inv-seat">
+          <span class="label">${esc(r.seatLabel)}</span>
+          <span class="who">${esc(r.guest_name || 'Sin invitado asignado')}<small>${esc(partner(r.partner_id).short)} · reservó ${esc(r.reserved_by)}</small></span>
+          <button class="btn small" data-inv="${r.id}">Invitación</button>
+        </div>`).join('')}
+    </div>`).join('') || '<p class="empty">No tienes sillas reservadas en conciertos próximos. Reserva primero en la pestaña Reservas.</p>';
+  document.querySelectorAll('[data-inv]').forEach((b) => b.addEventListener('click', () => openInvite(Number(b.dataset.inv))));
+}
+
+let currentInvite = null;
+
+function inviteData() {
+  const r = currentInvite;
+  const [, row, num] = /^([A-Z]+)(\d+)$/.exec(r.seatLabel) || [null, '', r.seatLabel];
+  return {
+    partner: partner(r.partner_id),
+    logo: state.logos[r.partner_id],
+    guest: $('#inv-guest').value.trim(),
+    message: $('#inv-message').value.trim(),
+    artist: r.artist,
+    date: r.date,
+    row,
+    seat: num,
+    venue: 'Movistar Arena · DaviArena, Bogotá',
+  };
+}
+
+let drawTimer;
+function redrawInvite() {
+  clearTimeout(drawTimer);
+  drawTimer = setTimeout(() => drawInvitation($('#inv-canvas'), inviteData()), 120);
+}
+
+async function openInvite(resId) {
+  currentInvite = state.invitations.find((r) => r.id === resId);
+  $('#inv-title').textContent = `${currentInvite.artist} · Silla ${currentInvite.seatLabel}`;
+  $('#inv-guest').value = currentInvite.guest_name || '';
+  $('#inv-message').value = 'Será un gusto compartir contigo esta noche en nuestro palco.';
+  $('#invite-modal').hidden = false;
+  await drawInvitation($('#inv-canvas'), inviteData());
+}
+
+function inviteBlob() {
+  return new Promise((resolve) => $('#inv-canvas').toBlob(resolve, 'image/png'));
+}
+
+function inviteFileName() {
+  const d = inviteData();
+  const slug = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
+  return `Invitacion-${slug(d.artist)}-${currentInvite.seatLabel}${d.guest ? '-' + slug(d.guest) : ''}.png`;
+}
+
+$('#inv-guest').addEventListener('input', redrawInvite);
+$('#inv-message').addEventListener('input', redrawInvite);
+$('#inv-close').addEventListener('click', () => ($('#invite-modal').hidden = true));
+$('#invite-modal').addEventListener('click', (e) => { if (e.target.id === 'invite-modal') $('#invite-modal').hidden = true; });
+
+$('#inv-download').addEventListener('click', async () => {
+  await drawInvitation($('#inv-canvas'), inviteData());
+  const url = URL.createObjectURL(await inviteBlob());
+  const a = Object.assign(document.createElement('a'), { href: url, download: inviteFileName() });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+// En celulares se puede compartir la imagen directo (WhatsApp, correo…)
+if (navigator.canShare?.({ files: [new File([''], 'x.png', { type: 'image/png' })] })) {
+  $('#inv-share').hidden = false;
+  $('#inv-share').addEventListener('click', async () => {
+    await drawInvitation($('#inv-canvas'), inviteData());
+    const file = new File([await inviteBlob()], inviteFileName(), { type: 'image/png' });
+    try { await navigator.share({ files: [file], title: 'Invitación' }); } catch {}
+  });
 }
 
 // ---------- Estadísticas ----------
@@ -322,6 +420,7 @@ async function loadActivity() {
 // ---------- Administración ----------
 
 function renderAdmin() {
+  renderLogos();
   $('#admin-concerts').innerHTML = state.concerts.map((c) => `
     <tr>
       <td>${c.date}</td><td>${esc(c.artist)}</td><td>${esc(c.notes || '')}</td><td>${c.taken}/${state.info.seats}</td>
@@ -345,6 +444,50 @@ function renderAdmin() {
       await loadConcerts();
       renderAdmin();
     } catch (err) { toast(err.message, true); }
+  }));
+}
+
+function renderLogos() {
+  $('#admin-logos').innerHTML = state.info.partners.map((p) => {
+    const l = state.logos[p.id];
+    const bg = l?.bg || 'light';
+    return `<div class="logo-item">
+      <strong>${esc(p.name)}</strong>
+      <div class="logo-plate ${bg}">${l ? `<img src="${esc(l.url)}" alt="Logo ${esc(p.name)}">` : esc(p.name)}</div>
+      <div class="actions">
+        <label>Fondo <select data-logo-bg="${p.id}"><option value="light" ${bg === 'light' ? 'selected' : ''}>Claro</option><option value="dark" ${bg === 'dark' ? 'selected' : ''}>Oscuro</option></select></label>
+        <label class="btn small">Subir logo<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-logo-file="${p.id}" hidden></label>
+      </div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('[data-logo-file]').forEach((input) => input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) return toast('El logo debe pesar menos de 500 KB.', true);
+    const dataUrl = await new Promise((resolve) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.readAsDataURL(file);
+    });
+    const id = input.dataset.logoFile;
+    try {
+      await api('/api/logos/' + id, { method: 'PUT', body: { dataUrl, bg: $(`[data-logo-bg="${id}"]`).value } });
+      toast('Logo actualizado');
+      await loadLogos();
+      renderLogos();
+    } catch (err) { toast(err.message, true); }
+  }));
+  document.querySelectorAll('[data-logo-bg]').forEach((sel) => sel.addEventListener('change', async () => {
+    sel.closest('.logo-item').querySelector('.logo-plate').className = 'logo-plate ' + sel.value;
+    const id = sel.dataset.logoBg;
+    // Si el logo ya está subido, el fondo se guarda de una vez; si no, se aplica al subirlo.
+    if (state.logos[id]?.url.startsWith('/api/')) {
+      try {
+        await api('/api/logos/' + id, { method: 'PATCH', body: { bg: sel.value } });
+        await loadLogos();
+        toast('Fondo actualizado');
+      } catch (err) { toast(err.message, true); }
+    }
   }));
 }
 

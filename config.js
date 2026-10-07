@@ -17,6 +17,8 @@ const config = {
       name: 'Netmask',
       short: 'Netmask',
       color: '#f4a3e8',
+      // Logo por defecto (public/logos). Un logo subido desde la web por el administrador lo reemplaza.
+      logo: '/logos/netmask.svg',
       code: process.env.CODE_NETMASK || 'NETMASK-2026',
     },
     {
