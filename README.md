@@ -50,12 +50,11 @@ Vercel no tiene disco persistente, así que en producción los datos van a **Tur
 1. **Base de datos**: en Vercel → *Storage* → *Marketplace* → **Turso**, crea una base y conéctala al proyecto. Eso agrega `TURSO_DATABASE_URL` y `TURSO_AUTH_TOKEN`.
    (Alternativa: crea la base en turso.tech y agrega esas dos variables a mano en *Settings → Environment Variables*.)
 2. **Códigos de acceso**: en *Settings → Environment Variables* define `CODE_NETMASK`, `CODE_TDSYNNEX`, `CODE_TECHPARTNERS` y `CODE_ADMIN` con valores propios.
-3. **Importar el repositorio** en Vercel (Framework Preset: *Other*, sin comando de build) y desplegar.
+3. **Importar el repositorio** en Vercel (Framework Preset: *Express*, sin comando de build) y desplegar.
 
 Las tablas y la programación inicial se crean solas en la primera petición.
 
 Estructura:
 - `public/` → la interfaz, servida por el CDN de Vercel.
-- `api/index.js` → función serverless que atiende `/api/*` (redirigido en `vercel.json`).
 - `lib/app.js` → la aplicación Express.
 - `server.js` → punto de entrada: con `npm start` corre como servidor normal en local; en Vercel (preset Express) exporta la app.

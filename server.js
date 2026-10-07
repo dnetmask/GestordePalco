@@ -1,7 +1,10 @@
-// Punto de entrada: en local levanta el servidor; en Vercel (preset Express) se exporta la app.
+// Punto de entrada. En local levanta el servidor; en Vercel (preset Express) se exporta la app
+// y los archivos de public/ los sirve directamente el CDN.
+const express = require('express');
 const { createApp } = require('./lib/app');
 
-const app = createApp();
+const app = express();
+app.use(createApp());
 
 if (require.main === module) {
   const port = Number(process.env.PORT || 3000);
