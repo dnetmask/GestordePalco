@@ -8,7 +8,7 @@ const NM = config.partners[0].code;
 const TD = config.partners[1].code;
 
 before(async () => {
-  server = createApp({ dbPath: ':memory:' }).listen(0);
+  server = createApp({ url: ':memory:' }).listen(0);
   await new Promise((r) => server.once('listening', r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -75,6 +75,17 @@ test('el tercer socio puede reservar', async () => {
   assert.equal(r.status, 201);
   const { data: stats } = await call('/api/stats', { code: TP });
   assert.equal(stats.partners.length, 3);
+});
+
+test('reserva parcial en conflicto no guarda ninguna silla', async () => {
+  const { data: concerts } = await call('/api/concerts', { code: NM });
+  const id = concerts[4].id;
+  await call(`/api/concerts/${id}/reservations`, { code: NM, method: 'POST', body: { seats: [6], reservedBy: 'A' } });
+  const r = await call(`/api/concerts/${id}/reservations`, { code: TD, method: 'POST', body: { seats: [5, 6, 7], reservedBy: 'B' } });
+  assert.equal(r.status, 409);
+  assert.match(r.data.error, /6/);
+  const { data } = await call(`/api/concerts/${id}`, { code: NM });
+  assert.deepEqual(data.reservations.map((x) => x.seat), [6]);
 });
 
 test('valida sillas fuera de rango', async () => {
