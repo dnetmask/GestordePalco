@@ -57,4 +57,5 @@ Las tablas y la programación inicial se crean solas en la primera petición.
 Estructura:
 - `public/` → la interfaz, servida por el CDN de Vercel.
 - `api/index.js` → función serverless que atiende `/api/*` (redirigido en `vercel.json`).
-- `server.js` → la aplicación Express; con `npm start` corre como servidor normal en local.
+- `lib/app.js` → la aplicación Express.
+- `server.js` → punto de entrada: con `npm start` corre como servidor normal en local; en Vercel (preset Express) exporta la app.

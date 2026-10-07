@@ -1,6 +1,6 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { createApp } = require('../server');
+const { createApp } = require('../lib/app');
 const config = require('../config');
 
 let server, base;
