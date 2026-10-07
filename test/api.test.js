@@ -65,6 +65,18 @@ test('reserva, evita dobles reservas y registra estadísticas', async () => {
   assert.equal(log.length, 3);
 });
 
+test('el tercer socio puede reservar', async () => {
+  const TP = config.partners[2].code;
+  assert.equal(config.seats, 11);
+  const { data: who } = await call('/api/auth', { method: 'POST', body: { code: TP } });
+  assert.equal(who.partnerId, 'technologypartners');
+  const { data: concerts } = await call('/api/concerts', { code: TP });
+  const r = await call(`/api/concerts/${concerts[2].id}/reservations`, { code: TP, method: 'POST', body: { seats: [11], reservedBy: 'Luis' } });
+  assert.equal(r.status, 201);
+  const { data: stats } = await call('/api/stats', { code: TP });
+  assert.equal(stats.partners.length, 3);
+});
+
 test('valida sillas fuera de rango', async () => {
   const { data: concerts } = await call('/api/concerts', { code: NM });
   const r = await call(`/api/concerts/${concerts[1].id}/reservations`, { code: NM, method: 'POST', body: { seats: [config.seats + 1], reservedBy: 'X' } });

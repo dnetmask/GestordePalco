@@ -2,12 +2,12 @@
 // con variables de entorno en producción.
 module.exports = {
   palcoName: process.env.PALCO_NAME || 'Palco Movistar DaviArena',
-  seats: Number(process.env.PALCO_SEATS || 12),
+  seats: Number(process.env.PALCO_SEATS || 11),
 
   partners: [
     {
       id: 'netmask',
-      name: 'Netmask Technology Partners',
+      name: 'Netmask',
       short: 'Netmask',
       color: '#f4a3e8',
       code: process.env.CODE_NETMASK || 'NETMASK-2026',
@@ -18,6 +18,13 @@ module.exports = {
       short: 'TD SYNNEX',
       color: '#5ec8e5',
       code: process.env.CODE_TDSYNNEX || 'TDSYNNEX-2026',
+    },
+    {
+      id: 'technologypartners',
+      name: 'Technology Partners',
+      short: 'Tech Partners',
+      color: '#9be36b',
+      code: process.env.CODE_TECHPARTNERS || 'TECHPARTNERS-2026',
     },
   ],
 
