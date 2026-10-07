@@ -306,7 +306,7 @@ function inviteData() {
     date: r.date,
     row,
     seat: num,
-    venue: 'DaviArena, Bogotá',
+    venue: 'DaviArena, Medellín',
   };
 }
 
