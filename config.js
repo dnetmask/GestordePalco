@@ -48,17 +48,26 @@ const config = {
     { artist: 'Rubén Blades', date: '2026-11-21' },
     { artist: 'Anuel AA', date: '2026-11-22' },
     { artist: 'Marco Antonio Solís', date: '2026-11-26' },
-    { artist: 'Beéle', date: '2026-11-29' },
+    { artist: 'Beéle', date: '2026-11-28' },
     { artist: 'Ozuna', date: '2026-12-03' },
-    // El afiche dice 04.11, pero por el orden de la programación corresponde al 04.12.
+    // El afiche dice 04.11; se dejó en 04.12 por el orden de la programación. Sin confirmar en Tuboleta (oct 2026).
     { artist: 'KI/KI', date: '2026-12-04' },
+    { artist: 'Hebert Vargas', date: '2026-12-04' },
     { artist: 'Martin Garrix', date: '2026-12-05' },
     { artist: 'Alcolirykoz', date: '2026-12-11' },
     { artist: 'Rawayana', date: '2026-12-12' },
     { artist: 'Juan Luis Guerra', date: '2026-12-13' },
     { artist: 'La Verbena', date: '2026-12-19' },
+    { artist: 'Fonseca', date: '2027-02-06' },
+    { artist: 'Melendi', date: '2027-02-12' },
     { artist: 'Laura Pausini', date: '2027-03-07' },
     { artist: 'Carlos Vives', date: '2027-04-17' },
+    { artist: 'Ana Gabriel', date: '2027-05-20' },
+  ],
+
+  // Correcciones de fecha de conciertos ya cargados (se aplican una vez y conservan las reservas).
+  dateFixes: [
+    { artist: 'Beéle', from: '2026-11-29', to: '2026-11-28' },
   ],
 };
 

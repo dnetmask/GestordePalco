@@ -145,3 +145,31 @@ test('invitaciones y logos', async () => {
   const img = await fetch(base + '/api/logos/tdsynnex');
   assert.equal(img.headers.get('content-type'), 'image/png');
 });
+
+test('una corrección de fecha mueve el concierto existente sin duplicarlo', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { createClient } = require('@libsql/client');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'palco-fix-'));
+  const url = 'file:' + path.join(dir, 'p.db');
+  // Base "antigua": Beéle cargado el 29 con una reserva
+  const db = createClient({ url });
+  await db.batch([
+    'CREATE TABLE concerts (id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT NOT NULL, date TEXT NOT NULL, notes TEXT)',
+    'CREATE TABLE meta (key TEXT PRIMARY KEY)',
+    "INSERT INTO concerts (artist, date) VALUES ('Beéle', '2026-11-29')",
+    "INSERT INTO meta (key) VALUES ('concert:Beéle|2026-11-29')",
+  ], 'write');
+  db.close();
+  const s = createApp({ url }).listen(0);
+  await new Promise((r) => s.once('listening', r));
+  const res = await fetch(`http://127.0.0.1:${s.address().port}/api/concerts`, { headers: { 'X-Access-Code': config.adminCode } });
+  const list = await res.json();
+  s.close();
+  const beele = list.filter((c) => c.artist === 'Beéle');
+  assert.equal(beele.length, 1);
+  assert.equal(beele[0].date, '2026-11-28');
+  assert.equal(beele[0].id, 1);
+  assert.ok(list.some((c) => c.artist === 'Ana Gabriel' && c.date === '2027-05-20'));
+});
