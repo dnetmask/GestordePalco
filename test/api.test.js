@@ -173,3 +173,27 @@ test('una corrección de fecha mueve el concierto existente sin duplicarlo', asy
   assert.equal(beele[0].id, 1);
   assert.ok(list.some((c) => c.artist === 'Ana Gabriel' && c.date === '2027-05-20'));
 });
+
+test('un concierto retirado se elimina de una base existente', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { createClient } = require('@libsql/client');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'palco-rm-'));
+  const url = 'file:' + path.join(dir, 'p.db');
+  const db = createClient({ url });
+  await db.batch([
+    'CREATE TABLE concerts (id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT NOT NULL, date TEXT NOT NULL, notes TEXT)',
+    'CREATE TABLE meta (key TEXT PRIMARY KEY)',
+    "INSERT INTO concerts (artist, date) VALUES ('KI/KI', '2026-12-04')",
+    "INSERT INTO meta (key) VALUES ('concert:KI/KI|2026-12-04')",
+  ], 'write');
+  db.close();
+  const s = createApp({ url }).listen(0);
+  await new Promise((r) => s.once('listening', r));
+  const res = await fetch(`http://127.0.0.1:${s.address().port}/api/concerts`, { headers: { 'X-Access-Code': config.adminCode } });
+  const list = await res.json();
+  s.close();
+  assert.ok(!list.some((c) => c.artist === 'KI/KI'));
+  assert.ok(list.some((c) => c.artist === 'Hebert Vargas'));
+});
