@@ -125,10 +125,10 @@ test('la carga de conciertos es idempotente y respeta los eliminados', async () 
 
 test('invitaciones y logos', async () => {
   const { data: concerts } = await call('/api/concerts', { code: TD });
-  const id = concerts.find((c) => c.artist === 'Ozuna').id;
+  const id = concerts.find((c) => c.artist === 'Martin Garrix').id;
   await call(`/api/concerts/${id}/reservations`, { code: TD, method: 'POST', body: { seats: [7], reservedBy: 'Ana', guestName: 'Cliente Y' } });
   const { data: mine } = await call('/api/invitations', { code: TD });
-  const inv = mine.find((r) => r.artist === 'Ozuna');
+  const inv = mine.find((r) => r.artist === 'Martin Garrix');
   assert.equal(inv.seatLabel, 'B2');
   assert.equal(inv.guest_name, 'Cliente Y');
   assert.ok(mine.every((r) => r.partner_id === 'tdsynnex'));
