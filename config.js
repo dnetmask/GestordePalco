@@ -51,13 +51,13 @@ const config = {
     { artist: 'Hebert Vargas', date: '2026-12-04' },
     { artist: 'Martin Garrix', date: '2026-12-05' },
     { artist: 'Alcolirykoz', date: '2026-12-11' },
-    { artist: 'Rawayana', date: '2026-12-12' },
-    { artist: 'Juan Luis Guerra', date: '2026-12-13' },
-    { artist: 'La Verbena', date: '2026-12-19' },
     { artist: 'Fonseca', date: '2027-02-06' },
     { artist: 'Melendi', date: '2027-02-12' },
+    { artist: 'Tiësto', date: '2027-02-20' },
     { artist: 'Laura Pausini', date: '2027-03-07' },
+    { artist: 'Ricardo Montaner', date: '2027-04-03' },
     { artist: 'Carlos Vives', date: '2027-04-17' },
+    { artist: 'Niche Sinfónico', date: '2027-04-24' },
     { artist: 'Ana Gabriel', date: '2027-05-20' },
   ],
 
@@ -72,6 +72,10 @@ const config = {
     // Marco Antonio Solís es en el estadio de Envigado (27 nov) y Ozuna en Medellín el 4 dic sin escenario anunciado.
     { artist: 'Marco Antonio Solís', date: '2026-11-26' },
     { artist: 'Ozuna', date: '2026-12-03' },
+    // Sin anuncio en la cartelera del DAVIarena a nov 2026.
+    { artist: 'Rawayana', date: '2026-12-12' },
+    { artist: 'Juan Luis Guerra', date: '2026-12-13' },
+    { artist: 'La Verbena', date: '2026-12-19' },
   ],
 };
 
