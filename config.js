@@ -47,9 +47,7 @@ const config = {
     { artist: 'Kris R', date: '2026-11-20' },
     { artist: 'Rubén Blades', date: '2026-11-21' },
     { artist: 'Anuel AA', date: '2026-11-22' },
-    { artist: 'Marco Antonio Solís', date: '2026-11-26' },
     { artist: 'Beéle', date: '2026-11-28' },
-    { artist: 'Ozuna', date: '2026-12-03' },
     { artist: 'Hebert Vargas', date: '2026-12-04' },
     { artist: 'Martin Garrix', date: '2026-12-05' },
     { artist: 'Alcolirykoz', date: '2026-12-11' },
@@ -71,6 +69,9 @@ const config = {
   // Conciertos retirados de la agenda: se eliminan una vez de la base, solo si no tienen sillas reservadas.
   removed: [
     { artist: 'KI/KI', date: '2026-12-04' },
+    // Marco Antonio Solís es en el estadio de Envigado (27 nov) y Ozuna en Medellín el 4 dic sin escenario anunciado.
+    { artist: 'Marco Antonio Solís', date: '2026-11-26' },
+    { artist: 'Ozuna', date: '2026-12-03' },
   ],
 };
 
