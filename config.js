@@ -67,14 +67,15 @@ const config = {
   ],
 
   // Conciertos retirados de la agenda: se eliminan una vez de la base, solo si no tienen sillas reservadas.
+  // Con force: true se eliminan también sus reservas (revisado con los socios, nov 2026).
   removed: [
     { artist: 'KI/KI', date: '2026-12-04' },
     // Marco Antonio Solís es en el estadio de Envigado (27 nov) y Ozuna en Medellín el 4 dic sin escenario anunciado.
-    { artist: 'Marco Antonio Solís', date: '2026-11-26' },
-    { artist: 'Ozuna', date: '2026-12-03' },
+    { artist: 'Marco Antonio Solís', date: '2026-11-26', force: true },
+    { artist: 'Ozuna', date: '2026-12-03', force: true },
     // Sin anuncio en la cartelera del DAVIarena a nov 2026.
     { artist: 'Rawayana', date: '2026-12-12' },
-    { artist: 'Juan Luis Guerra', date: '2026-12-13' },
+    { artist: 'Juan Luis Guerra', date: '2026-12-13', force: true },
     { artist: 'La Verbena', date: '2026-12-19' },
   ],
 };

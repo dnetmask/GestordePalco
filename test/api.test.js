@@ -216,3 +216,37 @@ test('la cartelera pública no requiere código ni revela quién reservó', asyn
   const r = await call(`/api/concerts/${target.id}/reservations`, { method: 'POST', body: { seats: [2], reservedBy: 'X' } });
   assert.equal(r.status, 401);
 });
+
+test('un retiro con force elimina el concierto y sus reservas, y lo deja en el historial', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { createClient } = require('@libsql/client');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'palco-force-'));
+  const url = 'file:' + path.join(dir, 'p.db');
+  const db = createClient({ url });
+  await db.batch([
+    'CREATE TABLE concerts (id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT NOT NULL, date TEXT NOT NULL, notes TEXT)',
+    `CREATE TABLE reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, concert_id INTEGER NOT NULL, seat INTEGER NOT NULL,
+      partner_id TEXT NOT NULL, reserved_by TEXT NOT NULL, guest_name TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (concert_id, seat))`,
+    'CREATE TABLE meta (key TEXT PRIMARY KEY)',
+    "INSERT INTO concerts (artist, date) VALUES ('Ozuna', '2026-12-03')",
+    "INSERT INTO meta (key) VALUES ('concert:Ozuna|2026-12-03')",
+    "INSERT INTO meta (key) VALUES ('removed:Ozuna|2026-12-03')",
+    "INSERT INTO reservations (concert_id, seat, partner_id, reserved_by) VALUES (1, 1, 'netmask', 'Carlos'), (1, 2, 'netmask', 'Carlos')",
+  ], 'write');
+  db.close();
+  const s = createApp({ url }).listen(0);
+  await new Promise((r) => s.once('listening', r));
+  const port = s.address().port;
+  const list = await (await fetch(`http://127.0.0.1:${port}/api/concerts`, { headers: { 'X-Access-Code': config.adminCode } })).json();
+  const log = await (await fetch(`http://127.0.0.1:${port}/api/activity`, { headers: { 'X-Access-Code': config.adminCode } })).json();
+  s.close();
+  assert.ok(!list.some((c) => c.artist === 'Ozuna'));
+  const entry = log.find((a) => a.action === 'concierto retirado');
+  assert.match(entry.detail, /Ozuna · 2026-12-03: se liberaron 2 silla\(s\) \(A1 de Carlos, A2 de Carlos\)/);
+  const check = createClient({ url });
+  const { rows } = await check.execute('SELECT COUNT(*) AS n FROM reservations');
+  check.close();
+  assert.equal(rows[0].n, 0);
+});
