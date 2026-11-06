@@ -197,3 +197,22 @@ test('un concierto retirado se elimina de una base existente', async () => {
   assert.ok(!list.some((c) => c.artist === 'KI/KI'));
   assert.ok(list.some((c) => c.artist === 'Hebert Vargas'));
 });
+
+test('la cartelera pública no requiere código ni revela quién reservó', async () => {
+  const { data: concerts } = await call('/api/concerts', { code: NM });
+  const target = concerts.find((c) => c.artist === 'Fonseca');
+  await call(`/api/concerts/${target.id}/reservations`, { code: NM, method: 'POST', body: { seats: [1, 7], reservedBy: 'Secreto Interno', guestName: 'Cliente Confidencial' } });
+  const res = await fetch(base + '/api/public/agenda');
+  assert.equal(res.status, 200);
+  const raw = await res.text();
+  for (const leak of ['Secreto Interno', 'Cliente Confidencial', 'netmask', 'partner', 'reserved_by', 'guest']) {
+    assert.ok(!raw.includes(leak), `la respuesta pública no debe incluir "${leak}"`);
+  }
+  const data = JSON.parse(raw);
+  const f = data.concerts.find((c) => c.artist === 'Fonseca');
+  assert.deepEqual(f.occupied, [1, 7]);
+  assert.equal(f.free, config.seats - 2);
+  // Sin código no se puede reservar
+  const r = await call(`/api/concerts/${target.id}/reservations`, { method: 'POST', body: { seats: [2], reservedBy: 'X' } });
+  assert.equal(r.status, 401);
+});

@@ -9,6 +9,7 @@ Web para administrar el palco que comparten **Netmask**, **TD SYNNEX** y **Techn
 - **Mapa del Box 7**: las 11 sillas como en el mapa del DaviArena — Fila A (5 sillas, adelante junto a la baranda) y Fila B (6 sillas, atrás); la distribución está en `rows` de `config.js`. Cada silla muestra con el color del socio quién la tiene. Un socio solo puede liberar sus propias sillas.
 - **Invitaciones**: por cada silla reservada en un concierto próximo se genera una invitación (imagen 1080×1350) con el logo de la empresa que invita, el nombre del invitado, el concierto, la fecha y Box/Fila/Silla. Se descarga o se comparte desde el celular.
 - **Logos de los socios**: el administrador los sube desde la pestaña *Admin* (PNG, JPG, WEBP o SVG; fondo claro u oscuro). El de Netmask viene incluido en `public/logos/`.
+- **Cartelera pública** (`/cartelera/`): enlace para compartir con clientes. Muestra los conciertos próximos y qué sillas están libres u ocupadas, sin pedir código, sin permitir reservas y sin mostrar quién reservó.
 - **Estadísticas**: quién reserva más (sillas y conciertos por socio), personas que más reservan, ocupación por concierto y de toda la temporada.
 - **Historial**: registro de cada reserva y liberación (quién, cuándo y qué).
 - **Administrador**: con el código de admin se pueden agregar, editar o eliminar conciertos, subir los logos y liberar cualquier silla.

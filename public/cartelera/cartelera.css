@@ -1,0 +1,42 @@
+.pub-head {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding: 1.5rem 16px 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.pub-head h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; margin: .2rem 0 .4rem; }
+.pub-sub { color: var(--muted); max-width: 640px; margin: 0; }
+.pub-main { max-width: 1200px; margin: 0 auto; padding: 0 16px 2rem; }
+.pub-legend { margin: 0 0 1rem; }
+.lg-free { border: 2px dashed var(--muted); }
+.lg-taken { background: var(--muted); }
+
+.pub-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+.pub-card { background: var(--wine-2); border-radius: var(--radius); padding: 1.1rem 1.2rem; }
+.pub-card h2 { font-size: 1.5rem; font-weight: 900; margin: 0; }
+.pub-card .when { color: var(--pink); font-weight: 600; font-size: .95rem; }
+.pub-card .avail { margin-top: .5rem; font-weight: 800; }
+.pub-card .avail.none { color: var(--muted); }
+.pub-card .box { margin-top: .8rem; gap: .35rem; }
+.pub-card .stage { margin-top: .3rem; font-size: .65rem; }
+.pub-card .railing { margin-top: .5rem; height: 4px; }
+
+.pseat {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px 8px 4px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: .85rem;
+}
+.pseat.free { border: 2px dashed var(--muted); color: var(--cream); }
+.pseat.taken { background: var(--muted); color: var(--wine); opacity: .55; }
+.pub-foot { color: var(--muted); font-size: .85rem; margin-top: 1.5rem; }
+
+@media (max-width: 760px) {
+  .pub-head { flex-direction: column; gap: .4rem; }
+  .pub-list { grid-template-columns: minmax(0, 1fr); }
+}
