@@ -261,3 +261,50 @@ textarea { font: inherit; background: var(--cream); color: #2a0016; border: 0; b
   .seat .guest, .seat .state { display: none; }
   .table { font-size: .8rem; }
 }
+
+/* ---------- Tema claro ----------
+   Fondo claro y texto oscuro para que se lea mejor; el vino queda solo como color de acento.
+   Va al final para sobreescribir los colores de arriba sin tocar la distribución. */
+:root {
+  --bg: #f6f3f4;
+  --surface: #ffffff;
+  --surface-2: #f1eaee;
+  --ink: #2b2228;
+  --ink-2: #6e6168;
+  --line: #e4dbe0;
+  --accent: #7a1846;
+  --seat-line: #b8a9b1;
+}
+body { background: var(--bg); color: var(--ink); }
+.brand, .logo, .concerts h2, .eyebrow, .row-label, .palco-head .date,
+.inv-concert h3 small, .kpi .value, .table th { color: var(--accent); }
+.card, .palco, .modal-card { background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(43,34,40,.06); }
+input, select, textarea { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.btn { color: #fff; }
+.btn.ghost { border-color: var(--accent); color: var(--accent); }
+.link { color: var(--accent); }
+.error { color: #8a1016; background: #fde4e4; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--line); }
+.tab { color: var(--ink); }
+.tab.active { color: #fff; }
+.toggle, .legend, .reserve-form label, .kpi .label, .rank-row .sub, .hint, .inv-seat .who small,
+.inv-fields label, .stage, .palco .empty { color: var(--ink-2); }
+.concert-item { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-left: 4px solid var(--red); }
+.concert-item .date { opacity: 1; color: var(--ink-2); }
+.concert-item.selected { border-color: var(--accent); border-left-color: var(--accent); box-shadow: 0 0 0 3px rgba(122,24,70,.15); }
+.concert-item.past { background: var(--surface-2); border-left-color: var(--seat-line); opacity: .8; }
+.bar, .rank-row .meter { background: var(--surface-2); }
+.railing { background: linear-gradient(90deg, #b9bcc6, #dcdfe6, #b9bcc6); }
+.seat { border-color: var(--seat-line); color: var(--ink); }
+.seat.free:hover { border-color: var(--accent); }
+.seat.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+.seat.taken.mine:hover { outline-color: var(--accent); }
+.table th { border-bottom: 2px solid var(--line); }
+.table td, .inv-seat { border-bottom: 1px solid var(--line); }
+.toast { background: var(--ink); color: #fff; }
+.toast.bad { color: #fff; }
+.modal { background: rgba(43,34,40,.45); }
+.modal-close { background: var(--surface-2); color: var(--ink); }
+.logo-item { background: var(--surface-2); }
+.logo-plate.light { border: 1px solid var(--line); }

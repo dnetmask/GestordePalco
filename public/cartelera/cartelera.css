@@ -40,3 +40,12 @@
   .pub-head { flex-direction: column; gap: .4rem; }
   .pub-list { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Tema claro (ver styles.css) */
+.pub-sub, .pub-foot, .pub-card .avail.none { color: var(--ink-2); }
+.pub-card { background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(43,34,40,.06); }
+.pub-card .when { color: var(--accent); }
+.pseat.free, .lg-free { border-color: var(--seat-line); color: var(--ink); }
+.pseat.taken { background: #cdbfc6; color: #5a4a53; opacity: 1; border: 2px solid #cdbfc6; }
+.lg-taken { background: #cdbfc6; }
+.pub-card .avail { color: #1f7a3a; }
