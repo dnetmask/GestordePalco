@@ -337,3 +337,45 @@ test('una base existente sin columnas de pre-reserva se actualiza sola', async (
   s.close();
   assert.equal(d.reservations[0].status, 'confirmed');
 });
+
+test('editar quién reservó y para quién: administrador y socio dueño, no otros socios', async () => {
+  const id = await newConcert('Prueba edición');
+  const created = await call(`/api/concerts/${id}/reservations`, { code: NM, method: 'POST', body: { seats: [1, 2], reservedBy: 'Carlos', guestName: 'Cliente A' } });
+  assert.equal(created.status, 201);
+  const resId = async (seat) => (await call(`/api/concerts/${id}`, { code: NM })).data.reservations.find((x) => x.seat === seat).id;
+  const first = await resId(1);
+
+  // Otro socio no puede
+  assert.equal((await call(`/api/reservations/${first}`, { code: TD, method: 'PATCH', body: { guestName: 'Intruso' } })).status, 403);
+  // El socio dueño edita solo el invitado: quién reservó se conserva
+  assert.equal((await call(`/api/reservations/${first}`, { code: NM, method: 'PATCH', body: { guestName: 'Cliente B' } })).status, 200);
+  let seat1 = (await call(`/api/concerts/${id}`, { code: NM })).data.reservations.find((x) => x.seat === 1);
+  assert.equal(seat1.guest_name, 'Cliente B');
+  assert.equal(seat1.reserved_by, 'Carlos');
+  // La otra silla de la misma reserva no cambia
+  assert.equal((await call(`/api/concerts/${id}`, { code: NM })).data.reservations.find((x) => x.seat === 2).guest_name, 'Cliente A');
+  // El administrador cambia quién reservó y borra el invitado
+  assert.equal((await call(`/api/reservations/${first}`, { code: config.adminCode, method: 'PATCH', body: { reservedBy: 'Laura', guestName: '' } })).status, 200);
+  seat1 = (await call(`/api/concerts/${id}`, { code: NM })).data.reservations.find((x) => x.seat === 1);
+  assert.equal(seat1.reserved_by, 'Laura');
+  assert.equal(seat1.guest_name, null);
+  // Quién reservó no puede quedar vacío
+  assert.equal((await call(`/api/reservations/${first}`, { code: NM, method: 'PATCH', body: { reservedBy: '  ' } })).status, 400);
+  // Sin cambios no escribe historial
+  const before = (await call('/api/activity?limit=200', { code: NM })).data.filter((a) => a.action === 'edición').length;
+  assert.equal((await call(`/api/reservations/${first}`, { code: NM, method: 'PATCH', body: { reservedBy: 'Laura' } })).data.changed, false);
+  assert.equal((await call('/api/activity?limit=200', { code: NM })).data.filter((a) => a.action === 'edición').length, before);
+  // El historial deja constancia de qué cambió
+  const log = (await call('/api/activity?limit=200', { code: NM })).data.filter((a) => a.action === 'edición');
+  assert.ok(log.some((a) => /Silla A1: para quién: Cliente A → Cliente B/.test(a.detail)));
+  assert.ok(log.some((a) => /reservó: Carlos → Laura; para quién: Cliente B → sin invitado/.test(a.detail)));
+  // Las invitaciones usan el invitado actualizado
+  const second = await resId(2);
+  const inv = (await call('/api/invitations', { code: NM })).data.find((x) => x.id === second);
+  assert.equal(inv.guest_name, 'Cliente A');
+  // Concierto ya pasado: queda como registro
+  await call(`/api/concerts/${id}`, { code: config.adminCode, method: 'PUT', body: { artist: 'Prueba edición', date: '2000-01-01' } });
+  assert.equal((await call(`/api/reservations/${first}`, { code: NM, method: 'PATCH', body: { guestName: 'Tarde' } })).status, 400);
+  // Reserva inexistente
+  assert.equal((await call('/api/reservations/999999', { code: NM, method: 'PATCH', body: { guestName: 'X' } })).status, 404);
+});

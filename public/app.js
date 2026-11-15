@@ -313,6 +313,7 @@ function openSeatDetail(resId) {
     actions.push(`<button class="btn ghost" data-sd="reject">Rechazar</button>`);
   }
   if (!past && (mine || isAdmin)) {
+    actions.push(`<button class="btn ghost" data-sd="edit">Editar datos</button>`);
     if (!pending && mine) actions.push(`<button class="btn ghost" data-sd="invite">Generar invitación</button>`);
     actions.push(`<button class="link danger" data-sd="release">${pending ? 'Cancelar esta pre-reserva' : 'Liberar esta silla'}</button>`);
   }
@@ -330,6 +331,12 @@ function openSeatDetail(resId) {
     </dl>
     ${pending && mine && !isAdmin ? '<p class="hint">Uno de los otros dos socios debe aprobarla en la pestaña Aprobaciones.</p>' : ''}
     <div class="sd-actions">${actions.join('')}</div>
+    <form class="sd-edit" id="sd-edit" hidden>
+      <label>Quién reservó<input id="sd-by" required maxlength="80" value="${esc(r.reserved_by)}"></label>
+      <label>Para quién / invitado<input id="sd-guest" maxlength="120" placeholder="Ej. Cliente ACME" value="${esc(r.guest_name || '')}"></label>
+      <p class="hint">Solo cambia esta silla (${esc(seatLabel(r.seat))}). Queda registrado en el Historial.</p>
+      <div class="sd-actions"><button class="btn" type="submit">Guardar cambios</button><button class="btn ghost" type="button" id="sd-edit-cancel">Cancelar</button></div>
+    </form>
     <div class="sd-confirm" id="sd-confirm" hidden></div>`;
   $('#seat-modal').hidden = false;
 
@@ -338,6 +345,12 @@ function openSeatDetail(resId) {
     if (act === 'invite') {
       closeSeatDetail();
       await showView('invitaciones');
+      return;
+    }
+    if (act === 'edit') {
+      $('#sd-confirm').hidden = true;
+      $('#sd-edit').hidden = false;
+      $('#sd-by').focus();
       return;
     }
     if (act === 'approve') return decide(r.request_id, 'approve', closeSeatDetail);
@@ -352,6 +365,20 @@ function openSeatDetail(resId) {
       $('#sd-yes').addEventListener('click', async () => { closeSeatDetail(); await release(r.id); });
     }
   }));
+
+  $('#sd-edit-cancel').addEventListener('click', () => { $('#sd-edit').hidden = true; });
+  $('#sd-edit').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api('/api/reservations/' + r.id, {
+        method: 'PATCH',
+        body: { reservedBy: $('#sd-by').value, guestName: $('#sd-guest').value },
+      });
+      toast(res.changed ? 'Datos actualizados' : 'No hubo cambios');
+      await refresh();
+      openSeatDetail(r.id);   // vuelve a mostrar el detalle con los datos nuevos
+    } catch (err) { toast(err.message, true); }
+  });
 }
 
 function closeSeatDetail() { $('#seat-modal').hidden = true; }

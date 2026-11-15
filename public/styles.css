@@ -349,3 +349,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
   .sd-actions .btn { flex: 1 1 auto; }
   .seat.pending .tag { display: none; }
 }
+
+/* Edición de los datos de una silla */
+.sd-edit { display: grid; gap: .7rem; margin-top: 1rem; padding: 1rem; border-radius: 8px; background: var(--surface-2); }
+.sd-edit label { display: grid; gap: .25rem; font-size: .8rem; color: var(--ink-2); }
+.sd-edit .hint { margin: 0; }
