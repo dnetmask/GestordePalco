@@ -8,6 +8,7 @@ const state = {
   detail: null,
   selectedSeats: new Set(),
   logos: {},         // { partnerId: { url, bg } | null }
+  requests: [],      // pre-reservas pendientes
 };
 
 const store = {
@@ -59,7 +60,7 @@ async function login(code) {
   $('#whoami').innerHTML = who.role === 'admin'
     ? 'Administrador'
     : `<span class="dot" style="background:${who.partner.color}"></span>${esc(who.partner.name)}`;
-  await Promise.all([loadConcerts(), loadLogos()]);
+  await Promise.all([loadConcerts(), loadLogos(), loadRequests()]);
   const first = state.concerts.find((c) => !isPast(c)) || state.concerts[0];
   if (first) selectConcert(first.id);
 }
@@ -96,6 +97,7 @@ function showView(view) {
   if (view === 'historial') loadActivity();
   if (view === 'admin') renderAdmin();
   if (view === 'invitaciones') loadInvitations();
+  if (view === 'aprobaciones') loadRequests().then(renderRequests);
 }
 
 // ---------- Conciertos y palco ----------
@@ -121,7 +123,7 @@ function renderConcertList() {
         <span class="artist">${esc(c.artist)}</span>
         <span class="date">${fmtDate(c.date)}</span>
         <span class="bar">${occupancyBar(c)}</span>
-        <span class="date">${c.free} de ${state.info.seats} libres</span>
+        <span class="date">${c.free} de ${state.info.seats} libres${c.pending ? ` · ${c.pending} en pre-reserva` : ''}</span>
       </button></li>`)
     .join('') || '<li class="empty">No hay conciertos próximos.</li>';
   document.querySelector('.concert-item.selected')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -148,10 +150,10 @@ function renderPalco() {
     const r = bySeat[n];
     if (r) {
       const p = partner(r.partner_id);
-      const mine = isAdmin || r.partner_id === state.who.partnerId;
-      return `<button class="seat taken ${mine && !past ? 'mine' : ''}" data-res="${r.id}" style="background:${p.color};border-color:${p.color}"
-        title="${esc(`Silla ${label} · ${p.short} · reservó ${r.reserved_by}${r.guest_name ? ' · asiste ' + r.guest_name : ''}`)}${mine && !past ? ' — clic para liberar' : ''}">
-        <span class="num">${label}</span><span class="tag">${esc(p.short)}</span><span class="guest">${esc(r.guest_name || r.reserved_by)}</span></button>`;
+      const pending = r.status === 'pending';
+      return `<button class="seat taken ${pending ? 'pending' : ''}" data-res="${r.id}" style="--pc:${p.color};background:${p.color};border-color:${p.color}"
+        title="${esc(`Silla ${label} · ${p.short}${pending ? ' · pre-reserva' : ''} · reservó ${r.reserved_by}${r.guest_name ? ' · para ' + r.guest_name : ''}`)} — clic para ver detalle">
+        <span class="num">${label}</span><span class="tag">${pending ? 'Pre-reserva' : esc(p.short)}</span><span class="guest">${esc(r.guest_name || r.reserved_by)}</span></button>`;
     }
     const sel = state.selectedSeats.has(n);
     return `<button class="seat free ${sel ? 'selected' : ''}" data-seat="${n}" ${past ? 'disabled' : ''} title="Silla ${label}">
@@ -187,6 +189,7 @@ function renderPalco() {
     <div class="stage">↓ ESCENARIO ↓</div>
     <div class="legend">
       ${state.info.partners.map((p) => `<span><i style="background:${p.color}"></i>${esc(p.name)}</span>`).join('')}
+      <span><i class="lg-pending"></i>Pre-reserva</span>
       <span><i style="border:2px dashed var(--muted)"></i>Libre</span>
     </div>
     ${!past && c.reservations.some((r) => isAdmin || r.partner_id === state.who.partnerId)
@@ -210,7 +213,7 @@ function renderPalco() {
     if (keep.guest != null) $('#rf-guest').value = keep.guest;
     if (keep.partner && $('#rf-partner')) $('#rf-partner').value = keep.partner;
   }));
-  document.querySelectorAll('.seat.taken.mine').forEach((b) => b.addEventListener('click', () => release(Number(b.dataset.res))));
+  document.querySelectorAll('.seat.taken').forEach((b) => b.addEventListener('click', () => openSeatDetail(Number(b.dataset.res))));
 
   $('#go-invites')?.addEventListener('click', () => showView('invitaciones'));
 
@@ -221,20 +224,41 @@ function renderPalco() {
   }
 }
 
+// Cupo del socio en el concierto abierto: sillas confirmadas y cuántas más puede confirmar sin aprobación.
+function quota() {
+  if (state.who.role === 'admin') return null;
+  const max = state.info.maxSeatsPerPartner;
+  const used = state.detail.reservations.filter((r) => r.partner_id === state.who.partnerId && r.status === 'confirmed').length;
+  return { max, used, room: Math.max(0, max - used) };
+}
+
 function updateSummary() {
   const n = state.selectedSeats.size;
-  $('#rf-summary').textContent = n
+  const q = quota();
+  const extra = q ? Math.max(0, n - q.room) : 0;
+  const lines = [];
+  lines.push(n
     ? `Sillas seleccionadas: ${[...state.selectedSeats].sort((a, b) => a - b).map(seatLabel).join(', ')}`
-    : 'Haz clic en las sillas libres que necesitas.';
+    : 'Haz clic en las sillas libres que necesitas.');
+  if (q) {
+    lines.push(`<span class="quota">Tu empresa tiene ${q.used} de ${q.max} sillas confirmadas en este concierto.</span>`);
+    if (extra) {
+      lines.push(`<span class="quota warn">${extra === n ? 'Todas' : `${extra} de ellas`} quedará${extra > 1 ? 'n' : ''} en <b>pre-reserva</b> hasta que uno de los otros dos socios la${extra > 1 ? 's' : ''} apruebe. La silla queda apartada mientras tanto.</span>`);
+    }
+  }
+  $('#rf-summary').innerHTML = lines.join('<br>');
   $('#rf-submit').disabled = n === 0;
-  $('#rf-submit').textContent = n ? `Reservar ${n} silla${n > 1 ? 's' : ''}` : 'Reservar';
+  $('#rf-submit').textContent = !n ? 'Reservar'
+    : extra === 0 ? `Reservar ${n} silla${n > 1 ? 's' : ''}`
+    : extra === n ? `Pre-reservar ${n} silla${n > 1 ? 's' : ''}`
+    : `Reservar ${n - extra} y pre-reservar ${extra}`;
 }
 
 async function reserve(e) {
   e.preventDefault();
   const reservedBy = $('#rf-by').value.trim();
   try {
-    await api(`/api/concerts/${state.selectedConcertId}/reservations`, {
+    const r = await api(`/api/concerts/${state.selectedConcertId}/reservations`, {
       method: 'POST',
       body: {
         seats: [...state.selectedSeats],
@@ -244,7 +268,9 @@ async function reserve(e) {
       },
     });
     store.set('palco.reservedBy', reservedBy);
-    toast('¡Reserva confirmada!');
+    if (!r.pending?.length) toast('¡Reserva confirmada!');
+    else if (!r.confirmed?.length) toast(`Pre-reserva enviada (${r.pending.join(', ')}). Espera la aprobación de otro socio.`);
+    else toast(`Confirmadas ${r.confirmed.join(', ')}; en pre-reserva ${r.pending.join(', ')} hasta que otro socio apruebe.`);
   } catch (err) {
     toast(err.message, true);
   }
@@ -252,8 +278,6 @@ async function reserve(e) {
 }
 
 async function release(resId) {
-  const r = state.detail.reservations.find((x) => x.id === resId);
-  if (!confirm(`¿Liberar la silla ${seatLabel(r.seat)} reservada por ${r.reserved_by}?`)) return;
   try {
     await api('/api/reservations/' + resId, { method: 'DELETE' });
     toast('Silla liberada');
@@ -264,8 +288,128 @@ async function release(resId) {
 }
 
 async function refresh() {
-  await loadConcerts();
+  await Promise.all([loadConcerts(), loadRequests()]);
   if (state.selectedConcertId) await selectConcert(state.selectedConcertId);
+}
+
+// ---------- Detalle de silla ----------
+
+const fmtReservedAt = (ts) => ts ? fmtTs(ts) : '';
+
+function openSeatDetail(resId) {
+  const r = state.detail.reservations.find((x) => x.id === resId);
+  if (!r) return;
+  const p = partner(r.partner_id);
+  const past = isPast(state.detail);
+  const isAdmin = state.who.role === 'admin';
+  const mine = r.partner_id === state.who.partnerId;
+  const pending = r.status === 'pending';
+  const group = pending ? state.detail.reservations.filter((x) => x.request_id === r.request_id) : [];
+  const canDecide = pending && !past && (isAdmin || !mine);
+
+  const actions = [];
+  if (!past && pending && canDecide) {
+    actions.push(`<button class="btn" data-sd="approve">Aprobar pre-reserva</button>`);
+    actions.push(`<button class="btn ghost" data-sd="reject">Rechazar</button>`);
+  }
+  if (!past && (mine || isAdmin)) {
+    if (!pending && mine) actions.push(`<button class="btn ghost" data-sd="invite">Generar invitación</button>`);
+    actions.push(`<button class="link danger" data-sd="release">${pending ? 'Cancelar esta pre-reserva' : 'Liberar esta silla'}</button>`);
+  }
+
+  $('#sd-body').innerHTML = `
+    <p class="eyebrow">${esc(state.detail.artist)} · ${fmtDate(state.detail.date)}</p>
+    <h2 id="sd-title">Silla ${esc(seatLabel(r.seat))}</h2>
+    <span class="status-chip ${pending ? 'pending' : 'ok'}">${pending ? 'Pre-reserva · esperando aprobación' : 'Reserva confirmada'}</span>
+    <dl class="sd-list">
+      <dt>Socio</dt><dd><span class="dot" style="background:${p.color}"></span> ${esc(p.name)}</dd>
+      <dt>Reservó</dt><dd>${esc(r.reserved_by)}</dd>
+      <dt>Para quién</dt><dd>${r.guest_name ? esc(r.guest_name) : '<span class="muted">Sin invitado asignado</span>'}</dd>
+      <dt>Fecha de reserva</dt><dd>${esc(fmtReservedAt(r.created_at))}</dd>
+      ${pending ? `<dt>Pre-reserva</dt><dd>${group.length} silla${group.length > 1 ? 's' : ''}: ${group.map((x) => seatLabel(x.seat)).join(', ')}</dd>` : ''}
+    </dl>
+    ${pending && mine && !isAdmin ? '<p class="hint">Uno de los otros dos socios debe aprobarla en la pestaña Aprobaciones.</p>' : ''}
+    <div class="sd-actions">${actions.join('')}</div>
+    <div class="sd-confirm" id="sd-confirm" hidden></div>`;
+  $('#seat-modal').hidden = false;
+
+  document.querySelectorAll('[data-sd]').forEach((b) => b.addEventListener('click', async () => {
+    const act = b.dataset.sd;
+    if (act === 'invite') {
+      closeSeatDetail();
+      await showView('invitaciones');
+      return;
+    }
+    if (act === 'approve') return decide(r.request_id, 'approve', closeSeatDetail);
+    if (act === 'reject') return decide(r.request_id, 'reject', closeSeatDetail);
+    if (act === 'release') {
+      // Confirmación dentro del mismo panel (no un aviso del navegador)
+      const box = $('#sd-confirm');
+      box.hidden = false;
+      box.innerHTML = `<p>¿Seguro que quieres ${pending ? 'cancelar la pre-reserva de' : 'liberar'} la silla ${esc(seatLabel(r.seat))}?</p>
+        <div class="sd-actions"><button class="btn" id="sd-yes">Sí, ${pending ? 'cancelar' : 'liberar'}</button><button class="btn ghost" id="sd-no">No</button></div>`;
+      $('#sd-no').addEventListener('click', () => { box.hidden = true; });
+      $('#sd-yes').addEventListener('click', async () => { closeSeatDetail(); await release(r.id); });
+    }
+  }));
+}
+
+function closeSeatDetail() { $('#seat-modal').hidden = true; }
+$('#sd-close').addEventListener('click', closeSeatDetail);
+$('#seat-modal').addEventListener('click', (e) => { if (e.target.id === 'seat-modal') closeSeatDetail(); });
+
+// ---------- Aprobaciones ----------
+
+async function loadRequests() {
+  try { state.requests = await api('/api/requests'); } catch { state.requests = []; }
+  const n = state.requests.filter((r) => r.canDecide).length;
+  $('#req-badge').hidden = n === 0;
+  $('#req-badge').textContent = n;
+}
+
+async function decide(requestId, decision, after) {
+  try {
+    await api(`/api/requests/${encodeURIComponent(requestId)}/${decision}`, {
+      method: 'POST', body: { decidedBy: store.get('palco.reservedBy') || '' },
+    });
+    toast(decision === 'approve' ? 'Pre-reserva aprobada: las sillas quedan confirmadas.' : 'Pre-reserva rechazada: las sillas quedan libres.');
+    after?.();
+  } catch (err) { toast(err.message, true); }
+  await refresh();
+  if (!$('#view-aprobaciones').hidden) renderRequests();
+}
+
+function requestCard(g, buttons) {
+  const p = partner(g.partnerId);
+  return `<div class="req-card">
+    <div class="req-main">
+      <strong>${esc(g.artist)}</strong> <small>${fmtDate(g.date)}</small>
+      <div><span class="dot" style="background:${p.color}"></span> ${esc(p.name)} · ${esc(g.reservedBy)}${g.guestName ? ` · para ${esc(g.guestName)}` : ''}</div>
+      <div class="muted">Silla${g.seats.length > 1 ? 's' : ''} ${g.seats.join(', ')} · solicitada ${esc(fmtTs(g.createdAt))}</div>
+    </div>
+    <div class="req-actions">${buttons}</div>
+  </div>`;
+}
+
+function renderRequests() {
+  const isAdmin = state.who.role === 'admin';
+  const decide = state.requests.filter((r) => r.canDecide);
+  const mine = state.requests.filter((r) => r.mine);
+  $('#req-hint').textContent = `Cada socio puede confirmar hasta ${state.info.maxSeatsPerPartner} sillas por concierto. Las adicionales quedan en pre-reserva y basta con que uno de los otros dos socios las apruebe.`;
+  $('#req-decide').innerHTML = decide.map((g) => requestCard(g,
+    `<button class="btn small" data-approve="${esc(g.requestId)}">Aprobar</button><button class="btn small ghost" data-reject="${esc(g.requestId)}">Rechazar</button>`)).join('')
+    || '<p class="empty">No hay pre-reservas pendientes de otros socios.</p>';
+  $('#req-mine').closest('.card').hidden = isAdmin;
+  $('#req-mine').innerHTML = mine.map((g) => requestCard(g,
+    `<span class="status-chip pending">Esperando aprobación</span><button class="link danger" data-cancel="${esc(g.requestId)}">Cancelar</button>`)).join('')
+    || '<p class="empty">No tienes pre-reservas pendientes.</p>';
+  document.querySelectorAll('[data-approve]').forEach((b) => b.addEventListener('click', () => decide(b.dataset.approve, 'approve')));
+  document.querySelectorAll('[data-reject]').forEach((b) => b.addEventListener('click', () => decide(b.dataset.reject, 'reject')));
+  document.querySelectorAll('[data-cancel]').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.armed) return decide(b.dataset.cancel, 'reject');
+    b.dataset.armed = '1';
+    b.textContent = '¿Seguro? Toca otra vez para cancelar';
+  }));
 }
 
 // ---------- Invitaciones ----------

@@ -308,3 +308,44 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .modal-close { background: var(--surface-2); color: var(--ink); }
 .logo-item { background: var(--surface-2); }
 .logo-plate.light { border: 1px solid var(--line); }
+
+/* ---------- Pre-reservas y detalle de silla ---------- */
+.badge { display: inline-block; min-width: 1.3rem; padding: 0 .35rem; margin-left: .2rem; border-radius: 99px; background: var(--red); color: #fff; font-size: .75rem; line-height: 1.3rem; text-align: center; }
+.tab.active .badge { background: #fff; color: var(--red); }
+.seat.taken { cursor: pointer; }
+.seat.taken:hover { outline: 3px solid var(--accent); outline-offset: 1px; }
+.seat.pending {
+  background: repeating-linear-gradient(135deg, var(--pc) 0 8px, #fff 8px 14px) !important;
+  border-style: dashed !important;
+}
+.seat.pending .tag { background: #fff; border-radius: 4px; padding: 0 .25rem; }
+.legend .lg-pending { background: repeating-linear-gradient(135deg, var(--seat-line) 0 3px, #fff 3px 5px); border: 1px dashed var(--seat-line); }
+.muted { color: var(--ink-2); }
+.quota { font-size: .85rem; color: var(--ink-2); }
+.quota.warn { color: #8a4b00; }
+.status-chip { display: inline-block; padding: .2rem .6rem; border-radius: 99px; font-size: .78rem; font-weight: 700; }
+.status-chip.ok { background: #e3f4e8; color: #1f6b35; }
+.status-chip.pending { background: #fff1d6; color: #8a4b00; }
+.link.danger { color: #b3261e; }
+
+.seat-card { width: min(460px, 100%); }
+.seat-card h2 { font-size: 1.8rem; font-weight: 900; margin: .2rem 0 .5rem; }
+.sd-list { display: grid; grid-template-columns: auto 1fr; gap: .45rem 1rem; margin: 1rem 0; }
+.sd-list dt { color: var(--ink-2); font-size: .85rem; }
+.sd-list dd { margin: 0; font-weight: 600; }
+.sd-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .6rem; }
+.sd-confirm { margin-top: 1rem; padding: .8rem 1rem; border-radius: 8px; background: #fdecea; }
+.sd-confirm p { margin: 0 0 .4rem; font-weight: 600; }
+
+.req-card { display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: .8rem 0; border-bottom: 1px solid var(--line); }
+.req-main { display: grid; gap: .2rem; min-width: 220px; flex: 1; }
+.req-main small { color: var(--accent); font-weight: 600; }
+.req-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+
+@media (max-width: 760px) {
+  /* En el celular el detalle de la silla sale como hoja desde abajo */
+  .modal.sheet { align-items: flex-end; padding: 0; }
+  .modal.sheet .modal-card { width: 100%; border-radius: 16px 16px 0 0; max-height: 85vh; padding-bottom: 1.6rem; }
+  .sd-actions .btn { flex: 1 1 auto; }
+  .seat.pending .tag { display: none; }
+}

@@ -23,6 +23,15 @@ const call = async (path, { code, method = 'GET', body } = {}) => {
   return { status: res.status, data: await res.json() };
 };
 
+// Conciertos de prueba con fecha lejana, para que las pruebas no dependan de la agenda real ni del día.
+let testDay = 0;
+const newConcert = async (artist) => {
+  testDay += 1;
+  const date = `2099-01-${String(testDay).padStart(2, '0')}`;
+  const { data } = await call('/api/concerts', { code: config.adminCode, method: 'POST', body: { artist, date } });
+  return data.id;
+};
+
 test('rechaza códigos inválidos', async () => {
   assert.equal((await call('/api/auth', { method: 'POST', body: { code: 'nope' } })).status, 401);
   assert.equal((await call('/api/concerts')).status, 401);
@@ -37,7 +46,7 @@ test('identifica al socio por su código', async () => {
 test('reserva, evita dobles reservas y registra estadísticas', async () => {
   const { data: concerts } = await call('/api/concerts', { code: NM });
   assert.equal(concerts.length, config.concerts.length);
-  const id = concerts.find((c) => c.artist === 'Juanes').id;
+  const id = await newConcert('Prueba reservas');
 
   const r1 = await call(`/api/concerts/${id}/reservations`, { code: NM, method: 'POST', body: { seats: [1, 2, 3], reservedBy: 'Sebastián' } });
   assert.equal(r1.status, 201);
@@ -62,7 +71,7 @@ test('reserva, evita dobles reservas y registra estadísticas', async () => {
   assert.equal(stats.partners[1].seats, 1);
 
   const { data: log } = await call('/api/activity', { code: NM });
-  assert.equal(log.length, 3);
+  assert.equal(log.filter((a) => ['reserva', 'liberación'].includes(a.action)).length, 3);
 });
 
 test('el tercer socio puede reservar', async () => {
@@ -71,7 +80,7 @@ test('el tercer socio puede reservar', async () => {
   const { data: who } = await call('/api/auth', { method: 'POST', body: { code: TP } });
   assert.equal(who.partnerId, 'technologypartners');
   const { data: concerts } = await call('/api/concerts', { code: TP });
-  const r = await call(`/api/concerts/${concerts[2].id}/reservations`, { code: TP, method: 'POST', body: { seats: [11], reservedBy: 'Luis' } });
+  const r = await call(`/api/concerts/${await newConcert('Prueba tercer socio')}/reservations`, { code: TP, method: 'POST', body: { seats: [11], reservedBy: 'Luis' } });
   assert.equal(r.status, 201);
   const { data: stats } = await call('/api/stats', { code: TP });
   assert.equal(stats.partners.length, 3);
@@ -79,7 +88,7 @@ test('el tercer socio puede reservar', async () => {
 
 test('reserva parcial en conflicto no guarda ninguna silla', async () => {
   const { data: concerts } = await call('/api/concerts', { code: NM });
-  const id = concerts[4].id;
+  const id = await newConcert('Prueba conflicto');
   await call(`/api/concerts/${id}/reservations`, { code: NM, method: 'POST', body: { seats: [6], reservedBy: 'A' } });
   const r = await call(`/api/concerts/${id}/reservations`, { code: TD, method: 'POST', body: { seats: [5, 6, 7], reservedBy: 'B' } });
   assert.equal(r.status, 409);
@@ -90,7 +99,7 @@ test('reserva parcial en conflicto no guarda ninguna silla', async () => {
 
 test('valida sillas fuera de rango', async () => {
   const { data: concerts } = await call('/api/concerts', { code: NM });
-  const r = await call(`/api/concerts/${concerts[1].id}/reservations`, { code: NM, method: 'POST', body: { seats: [config.seats + 1], reservedBy: 'X' } });
+  const r = await call(`/api/concerts/${await newConcert('Prueba validación')}/reservations`, { code: NM, method: 'POST', body: { seats: [config.seats + 1], reservedBy: 'X' } });
   assert.equal(r.status, 400);
 });
 
@@ -125,10 +134,10 @@ test('la carga de conciertos es idempotente y respeta los eliminados', async () 
 
 test('invitaciones y logos', async () => {
   const { data: concerts } = await call('/api/concerts', { code: TD });
-  const id = concerts.find((c) => c.artist === 'Martin Garrix').id;
+  const id = await newConcert('Prueba invitaciones');
   await call(`/api/concerts/${id}/reservations`, { code: TD, method: 'POST', body: { seats: [7], reservedBy: 'Ana', guestName: 'Cliente Y' } });
   const { data: mine } = await call('/api/invitations', { code: TD });
-  const inv = mine.find((r) => r.artist === 'Martin Garrix');
+  const inv = mine.find((r) => r.artist === 'Prueba invitaciones');
   assert.equal(inv.seatLabel, 'B2');
   assert.equal(inv.guest_name, 'Cliente Y');
   assert.ok(mine.every((r) => r.partner_id === 'tdsynnex'));
@@ -200,7 +209,7 @@ test('un concierto retirado se elimina de una base existente', async () => {
 
 test('la cartelera pública no requiere código ni revela quién reservó', async () => {
   const { data: concerts } = await call('/api/concerts', { code: NM });
-  const target = concerts.find((c) => c.artist === 'Fonseca');
+  const target = { id: await newConcert('Prueba cartelera') };
   await call(`/api/concerts/${target.id}/reservations`, { code: NM, method: 'POST', body: { seats: [1, 7], reservedBy: 'Secreto Interno', guestName: 'Cliente Confidencial' } });
   const res = await fetch(base + '/api/public/agenda');
   assert.equal(res.status, 200);
@@ -209,7 +218,7 @@ test('la cartelera pública no requiere código ni revela quién reservó', asyn
     assert.ok(!raw.includes(leak), `la respuesta pública no debe incluir "${leak}"`);
   }
   const data = JSON.parse(raw);
-  const f = data.concerts.find((c) => c.artist === 'Fonseca');
+  const f = data.concerts.find((c) => c.artist === 'Prueba cartelera');
   assert.deepEqual(f.occupied, [1, 7]);
   assert.equal(f.free, config.seats - 2);
   // Sin código no se puede reservar
@@ -249,4 +258,82 @@ test('un retiro con force elimina el concierto y sus reservas, y lo deja en el h
   const { rows } = await check.execute('SELECT COUNT(*) AS n FROM reservations');
   check.close();
   assert.equal(rows[0].n, 0);
+});
+
+test('límite de 4 sillas por socio: el excedente queda en pre-reserva y otro socio lo aprueba', async () => {
+  const TP = config.partners[2].code;
+  const { data: concerts } = await call('/api/concerts', { code: NM });
+  const id = await newConcert('Prueba límite');
+
+  // Netmask pide 6: se confirman 4 y 2 quedan en pre-reserva
+  const r = await call(`/api/concerts/${id}/reservations`, { code: NM, method: 'POST', body: { seats: [1, 2, 3, 4, 5, 6], reservedBy: 'Carlos', guestName: 'Cliente ACME' } });
+  assert.equal(r.status, 201);
+  assert.deepEqual(r.data.confirmed, ['A1', 'A2', 'A3', 'A4']);
+  assert.deepEqual(r.data.pending, ['A5', 'B1']);
+
+  // Las sillas en pre-reserva quedan apartadas para los demás
+  const clash = await call(`/api/concerts/${id}/reservations`, { code: TD, method: 'POST', body: { seats: [5], reservedBy: 'Ana' } });
+  assert.equal(clash.status, 409);
+
+  // Las pre-reservas no cuentan en invitaciones
+  const { data: inv } = await call('/api/invitations', { code: NM });
+  assert.equal(inv.filter((x) => x.artist === 'Prueba límite').length, 4);
+
+  // Netmask ve su solicitud pero no puede aprobarla; TD SYNNEX sí
+  const { data: reqNm } = await call('/api/requests', { code: NM });
+  const mine = reqNm.find((x) => x.artist === 'Prueba límite');
+  assert.equal(mine.mine, true);
+  assert.equal(mine.canDecide, false);
+  assert.equal((await call(`/api/requests/${mine.requestId}/approve`, { code: NM, method: 'POST' })).status, 403);
+  const { data: reqTd } = await call('/api/requests', { code: TD });
+  assert.equal(reqTd.find((x) => x.requestId === mine.requestId).canDecide, true);
+
+  // Basta con que Technology Partners apruebe
+  assert.equal((await call(`/api/requests/${mine.requestId}/approve`, { code: TP, method: 'POST', body: { decidedBy: 'Luis' } })).status, 200);
+  const { data: detail } = await call(`/api/concerts/${id}`, { code: NM });
+  assert.ok(detail.reservations.every((x) => x.status === 'confirmed'));
+  assert.equal(detail.reservations.length, 6);
+  // Ya no está pendiente
+  assert.equal((await call(`/api/requests/${mine.requestId}/approve`, { code: TD, method: 'POST' })).status, 404);
+
+  // Ya con 6 confirmadas, una silla más vuelve a quedar en pre-reserva; TD SYNNEX la rechaza y se libera
+  const r2 = await call(`/api/concerts/${id}/reservations`, { code: NM, method: 'POST', body: { seats: [7], reservedBy: 'Carlos' } });
+  assert.deepEqual(r2.data.pending, ['B2']);
+  assert.equal((await call(`/api/requests/${r2.data.requestId}/reject`, { code: TD, method: 'POST' })).status, 200);
+  const { data: after } = await call(`/api/concerts/${id}`, { code: NM });
+  assert.ok(!after.reservations.some((x) => x.seat === 7));
+
+  // El mismo socio puede cancelar su pre-reserva
+  const r3 = await call(`/api/concerts/${id}/reservations`, { code: NM, method: 'POST', body: { seats: [8], reservedBy: 'Carlos' } });
+  assert.equal((await call(`/api/requests/${r3.data.requestId}/reject`, { code: NM, method: 'POST' })).status, 200);
+
+  // El historial registra la pre-reserva y la aprobación
+  const { data: log } = await call('/api/activity?limit=200', { code: NM });
+  assert.ok(log.some((a) => a.action === 'pre-reserva'));
+  assert.ok(log.some((a) => a.action === 'aprobación' && /Technology Partners \(Luis\) aprobó/.test(a.detail)));
+  assert.ok(log.some((a) => a.action === 'rechazo'));
+  assert.ok(log.some((a) => a.action === 'pre-reserva cancelada'));
+});
+
+test('una base existente sin columnas de pre-reserva se actualiza sola', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { createClient } = require('@libsql/client');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'palco-cols-'));
+  const url = 'file:' + path.join(dir, 'p.db');
+  const db = createClient({ url });
+  await db.batch([
+    'CREATE TABLE concerts (id INTEGER PRIMARY KEY AUTOINCREMENT, artist TEXT NOT NULL, date TEXT NOT NULL, notes TEXT)',
+    `CREATE TABLE reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, concert_id INTEGER NOT NULL, seat INTEGER NOT NULL,
+      partner_id TEXT NOT NULL, reserved_by TEXT NOT NULL, guest_name TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (concert_id, seat))`,
+    "INSERT INTO concerts (artist, date) VALUES ('Juanes', '2026-11-14')",
+    "INSERT INTO reservations (concert_id, seat, partner_id, reserved_by) VALUES (1, 1, 'netmask', 'Carlos')",
+  ], 'write');
+  db.close();
+  const s = createApp({ url }).listen(0);
+  await new Promise((r) => s.once('listening', r));
+  const d = await (await fetch(`http://127.0.0.1:${s.address().port}/api/concerts/1`, { headers: { 'X-Access-Code': config.adminCode } })).json();
+  s.close();
+  assert.equal(d.reservations[0].status, 'confirmed');
 });

@@ -28,6 +28,7 @@
       <nav>
         <button class="tab active" data-view="reservas">Reservas</button>
         <button class="tab" data-view="invitaciones">Invitaciones</button>
+        <button class="tab" data-view="aprobaciones">Aprobaciones <span class="badge" id="req-badge" hidden></span></button>
         <button class="tab" data-view="stats">Estadísticas</button>
         <button class="tab" data-view="historial">Historial</button>
         <button class="tab admin-only" data-view="admin" hidden>Admin</button>
@@ -55,6 +56,19 @@
           <h2>Invitaciones</h2>
           <p class="hint">Genera una invitación por silla con el logo de la empresa que invita. Se descarga como imagen para enviarla por WhatsApp o correo.</p>
           <div id="invite-list"></div>
+        </div>
+      </section>
+
+      <!-- Aprobaciones -->
+      <section id="view-aprobaciones" class="view" hidden>
+        <div class="card wide">
+          <h2>Pre-reservas por aprobar</h2>
+          <p class="hint" id="req-hint"></p>
+          <div id="req-decide"></div>
+        </div>
+        <div class="card wide">
+          <h2>Mis pre-reservas</h2>
+          <div id="req-mine"></div>
         </div>
       </section>
 
@@ -108,6 +122,14 @@
           <button class="btn ghost" type="button" id="inv-share" hidden>Compartir</button>
         </form>
       </div>
+    </div>
+  </div>
+
+  <!-- Detalle de una silla reservada -->
+  <div id="seat-modal" class="modal sheet" hidden>
+    <div class="modal-card seat-card" role="dialog" aria-modal="true" aria-labelledby="sd-title">
+      <button class="link modal-close" id="sd-close" aria-label="Cerrar">✕</button>
+      <div id="sd-body"></div>
     </div>
   </div>
 

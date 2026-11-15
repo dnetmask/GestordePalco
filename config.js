@@ -37,6 +37,10 @@ const config = {
     },
   ],
 
+  // Máximo de sillas confirmadas por socio en cada concierto. Las que pase de este límite quedan en
+  // pre-reserva hasta que al menos uno de los otros dos socios la apruebe.
+  maxSeatsPerPartner: 4,
+
   // Código de administración: puede liberar cualquier reserva y gestionar conciertos.
   adminCode: process.env.CODE_ADMIN || 'ADMIN-PALCO-2026',
 
