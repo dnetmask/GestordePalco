@@ -367,12 +367,13 @@ async function loadRequests() {
   $('#req-badge').textContent = n;
 }
 
-async function decide(requestId, decision, after) {
+async function decide(requestId, decision, after, ownCancel = false) {
   try {
     await api(`/api/requests/${encodeURIComponent(requestId)}/${decision}`, {
       method: 'POST', body: { decidedBy: store.get('palco.reservedBy') || '' },
     });
-    toast(decision === 'approve' ? 'Pre-reserva aprobada: las sillas quedan confirmadas.' : 'Pre-reserva rechazada: las sillas quedan libres.');
+    toast(decision === 'approve' ? 'Pre-reserva aprobada: las sillas quedan confirmadas.'
+      : ownCancel ? 'Pre-reserva cancelada: las sillas quedan libres.' : 'Pre-reserva rechazada: las sillas quedan libres.');
     after?.();
   } catch (err) { toast(err.message, true); }
   await refresh();
@@ -393,10 +394,10 @@ function requestCard(g, buttons) {
 
 function renderRequests() {
   const isAdmin = state.who.role === 'admin';
-  const decide = state.requests.filter((r) => r.canDecide);
+  const toDecide = state.requests.filter((r) => r.canDecide);
   const mine = state.requests.filter((r) => r.mine);
   $('#req-hint').textContent = `Cada socio puede confirmar hasta ${state.info.maxSeatsPerPartner} sillas por concierto. Las adicionales quedan en pre-reserva y basta con que uno de los otros dos socios las apruebe.`;
-  $('#req-decide').innerHTML = decide.map((g) => requestCard(g,
+  $('#req-decide').innerHTML = toDecide.map((g) => requestCard(g,
     `<button class="btn small" data-approve="${esc(g.requestId)}">Aprobar</button><button class="btn small ghost" data-reject="${esc(g.requestId)}">Rechazar</button>`)).join('')
     || '<p class="empty">No hay pre-reservas pendientes de otros socios.</p>';
   $('#req-mine').closest('.card').hidden = isAdmin;
@@ -406,7 +407,7 @@ function renderRequests() {
   document.querySelectorAll('[data-approve]').forEach((b) => b.addEventListener('click', () => decide(b.dataset.approve, 'approve')));
   document.querySelectorAll('[data-reject]').forEach((b) => b.addEventListener('click', () => decide(b.dataset.reject, 'reject')));
   document.querySelectorAll('[data-cancel]').forEach((b) => b.addEventListener('click', () => {
-    if (b.dataset.armed) return decide(b.dataset.cancel, 'reject');
+    if (b.dataset.armed) return decide(b.dataset.cancel, 'reject', null, true);
     b.dataset.armed = '1';
     b.textContent = '¿Seguro? Toca otra vez para cancelar';
   }));
